@@ -1,0 +1,1124 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>工作笔记 - 痛点管理</title>
+    <!-- 引入Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入Font Awesome图标 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- 自定义Tailwind配置 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#165DFF',
+                        secondary: '#6B7280',
+                        success: '#00B42A',
+                        warning: '#FF7D00',
+                        danger: '#F53F3F',
+                        light: '#F9FAFB',
+                        dark: '#1F2937',
+                        today: '#722ED1' // 今日完成专属色
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .card-shadow {
+                box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12), 0 1px 8px rgba(0, 0, 0, 0.08);
+            }
+            .card-shadow-hover {
+                box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15), 0 2px 12px rgba(0, 0, 0, 0.1);
+            }
+            .transition-all-300 {
+                transition: all 0.3s ease;
+            }
+            .gradient-bg {
+                background: linear-gradient(135deg, #f5f7fa 0%, #e4eaf5 100%);
+            }
+            .primary-gradient {
+                background: linear-gradient(135deg, #165DFF 0%, #0F4CD3 100%);
+            }
+            .today-gradient {
+                background: linear-gradient(135deg, #722ED1 0%, #5A24A0 100%);
+            }
+            .input-focus-effect {
+                box-shadow: 0 0 0 3px rgba(22, 93, 255, 0.1);
+            }
+            .loading-spinner {
+                animation: spin 1s linear infinite;
+            }
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+            .scale-hover {
+                transition: transform 0.2s ease;
+            }
+            .scale-hover:hover {
+                transform: scale(1.02);
+            }
+            .completed-opacity {
+                opacity: 0.8;
+            }
+            .today-opacity {
+                opacity: 0.9;
+            }
+            /* 弹窗相关样式 */
+            .modal-overlay {
+                background-color: rgba(0, 0, 0, 0.5);
+                backdrop-filter: blur(4px);
+            }
+            .modal-enter {
+                animation: modalEnter 0.3s ease forwards;
+            }
+            .modal-exit {
+                animation: modalExit 0.3s ease forwards;
+            }
+            @keyframes modalEnter {
+                from { opacity: 0; transform: scale(0.95) translateY(20px); }
+                to { opacity: 1; transform: scale(1) translateY(0); }
+            }
+            @keyframes modalExit {
+                from { opacity: 1; transform: scale(1) translateY(0); }
+                to { opacity: 0; transform: scale(0.95) translateY(20px); }
+            }
+            .count-badge {
+                cursor: pointer;
+                transition: all 0.2s ease;
+            }
+            .count-badge:hover {
+                color: #165DFF;
+                font-weight: 600;
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen font-sans text-dark gradient-bg">
+    <!-- 登录页面 -->
+    <div id="login-page" class="flex items-center justify-center min-h-screen px-4 py-8">
+        <!-- 背景装饰元素 -->
+        <div class="absolute top-0 left-0 w-full h-full overflow-hidden -z-10">
+            <div class="absolute top-10 right-10 w-64 h-64 bg-primary/5 rounded-full blur-3xl"></div>
+            <div class="absolute bottom-10 left-10 w-80 h-80 bg-warning/5 rounded-full blur-3xl"></div>
+        </div>
+        
+        <div class="w-full max-w-md bg-white rounded-2xl card-shadow p-8 md:p-10 scale-hover transition-all-300">
+            <!-- 登录卡片头部 -->
+            <div class="text-center mb-10">
+                <div class="inline-flex items-center justify-center w-16 h-16 primary-gradient rounded-full mb-4">
+                    <i class="fas fa-book-open text-white text-2xl"></i>
+                </div>
+                <h1 class="text-[clamp(1.5rem,3vw,2.2rem)] font-bold text-dark mb-2">工作笔记 - 痛点管理</h1>
+                <p class="text-secondary text-sm md:text-base">高效追踪和管理各类工作痛点</p>
+            </div>
+            
+            <!-- 登录表单 -->
+            <form id="login-form" class="space-y-6">
+                <div class="space-y-2">
+                    <label for="username" class="block text-sm font-medium text-gray-700">用户名</label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                            <i class="fas fa-user"></i>
+                        </span>
+                        <input type="text" id="username" required
+                            class="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-0 focus:border-primary input-focus-effect outline-none transition-all-300 bg-gray-50/50">
+                    </div>
+                </div>
+                
+                <div class="space-y-2">
+                    <label for="password" class="block text-sm font-medium text-gray-700">密码</label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                            <i class="fas fa-lock"></i>
+                        </span>
+                        <input type="password" id="password" required
+                            class="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-0 focus:border-primary input-focus-effect outline-none transition-all-300 bg-gray-50/50">
+                    </div>
+                </div>
+                
+                <button type="submit" 
+                    class="w-full primary-gradient text-white py-3 px-4 rounded-lg hover:opacity-95 transition-all-300 font-medium flex items-center justify-center gap-2">
+                    <i class="fas fa-sign-in-alt"></i>
+                    登录系统
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 主页面 -->
+    <div id="main-page" class="hidden min-h-screen gradient-bg">
+        <!-- 顶部导航栏 -->
+        <header class="bg-white/90 backdrop-blur-sm card-shadow sticky top-0 z-10 border-b border-gray-100">
+            <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 primary-gradient rounded-lg flex items-center justify-center">
+                        <i class="fas fa-book-open text-white text-xs"></i>
+                    </div>
+                    <h1 class="text-xl font-bold text-dark">工作笔记 - 痛点管理</h1>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="bg-primary/5 rounded-full px-3 py-1 flex items-center gap-2">
+                        <i class="fas fa-user-circle text-primary text-sm"></i>
+                        <span id="user-name" class="text-dark text-sm font-medium"></span>
+                    </div>
+                    <button id="logout-btn" 
+                        class="bg-danger/5 text-danger hover:bg-danger/10 px-3 py-1.5 rounded-lg transition-all-300 flex items-center gap-1">
+                        <i class="fas fa-sign-out-alt text-sm"></i>
+                        <span class="text-sm">退出</span>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- 加载中状态 -->
+        <div id="loading-state" class="fixed inset-0 flex items-center justify-center bg-white/80 backdrop-blur-sm z-50">
+            <div class="text-center">
+                <div class="inline-flex items-center justify-center w-16 h-16 primary-gradient rounded-full mb-4 loading-spinner">
+                    <i class="fas fa-spinner text-white text-xl"></i>
+                </div>
+                <h3 class="text-lg font-medium text-dark mb-2">加载中...</h3>
+                <p class="text-secondary text-sm">正在获取您的痛点管理数据</p>
+            </div>
+        </div>
+
+        <!-- 痛点详情弹窗 -->
+        <div id="pain-modal" class="fixed inset-0 z-50 flex items-center justify-center modal-overlay hidden">
+            <div class="w-full max-w-lg mx-4 bg-white rounded-2xl card-shadow modal-enter overflow-hidden">
+                <!-- 弹窗头部 -->
+                <div class="p-5 border-b border-gray-100 flex justify-between items-center">
+                    <h2 id="modal-title" class="text-lg font-bold text-dark flex items-center gap-2">
+                        <i class="fas fa-list text-primary"></i>
+                        痛点列表
+                    </h2>
+                    <button id="close-modal" class="text-gray-400 hover:text-gray-600 transition-all-300 p-1">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <!-- 弹窗内容 -->
+                <div id="modal-content" class="p-5 max-h-[70vh] overflow-y-auto">
+                    <!-- 空状态 -->
+                    <div id="modal-empty" class="text-center py-10">
+                        <div class="w-12 h-12 inline-flex items-center justify-center bg-gray-100 rounded-full mb-3">
+                            <i class="fas fa-inbox text-xl text-gray-400"></i>
+                        </div>
+                        <p class="text-gray-500">暂无痛点记录</p>
+                    </div>
+                    
+                    <!-- 痛点列表 -->
+                    <div id="modal-list" class="space-y-3 hidden">
+                        <!-- 动态生成的痛点项 -->
+                    </div>
+                </div>
+                
+                <!-- 弹窗底部 -->
+                <div class="p-4 bg-gray-50 border-t border-gray-100 flex justify-end">
+                    <button id="close-modal-btn" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-all-300 flex items-center gap-1">
+                        <i class="fas fa-times"></i>
+                        关闭
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 主要内容区 -->
+        <main class="container mx-auto px-4 py-8">
+            <!-- 四个痛点管理栏目 -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
+                <!-- 造价咨询 痛点管理 -->
+                <div class="bg-white rounded-2xl card-shadow overflow-hidden scale-hover transition-all-300">
+                    <div class="bg-primary/10 p-5 border-l-4 border-primary">
+                        <h2 class="text-lg font-bold text-primary flex items-center gap-2">
+                            <i class="fas fa-calculator w-6 h-6 flex items-center justify-center bg-primary/20 rounded-full text-primary"></i>
+                            造价咨询
+                        </h2>
+                    </div>
+                    <div class="p-5 space-y-6">
+                        <!-- 1. 待处理痛点 -->
+                        <div>
+                            <div class="flex justify-between items-center mb-3">
+                                <h3 class="text-sm font-medium text-gray-600 flex items-center gap-1">
+                                    <i class="fas fa-exclamation-circle text-xs text-primary"></i>
+                                    待处理痛点 (<span id="cost-pending-count" class="count-badge" data-category="cost" data-type="pending">0</span>)
+                                </h3>
+                            </div>
+                            <!-- 添加痛点表单 -->
+                            <form class="add-pain-form mb-3 flex gap-2" data-category="cost" data-type="pending">
+                                <input type="text" placeholder="添加新的痛点..." required
+                                    class="flex-1 px-3 py-2 border border-gray-200 rounded-lg focus:ring-0 focus:border-primary input-focus-effect outline-none bg-gray-50/50 text-sm">
+                                <button type="submit" 
+                                    class="primary-gradient text-white p-2 rounded-lg hover:opacity-95 transition-all-300">
+                                    <i class="fas fa-plus text-xs"></i>
+                                </button>
+                            </form>
+                            <!-- 待处理痛点列表 -->
+                            <div class="pain-list pending-list" data-category="cost">
+                                <div class="text-center text-secondary py-4" id="cost-pending-empty">
+                                    <div class="w-8 h-8 inline-flex items-center justify-center bg-gray-100 rounded-full mb-2">
+                                        <i class="fas fa-inbox text-lg text-gray-400"></i>
+                                    </div>
+                                    <p class="text-gray-500 text-xs">暂无待处理痛点</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 2. 今日完成痛点 -->
+                        <div>
+                            <h3 class="text-sm font-medium text-gray-600 mb-3 flex items-center gap-1">
+                                <i class="fas fa-star text-xs text-today"></i>
+                                今日完成痛点 (<span id="cost-today-count" class="count-badge" data-category="cost" data-type="today">0</span>)
+                            </h3>
+                            <!-- 添加今日完成痛点表单 -->
+                            <form class="add-pain-form mb-3 flex gap-2" data-category="cost" data-type="today">
+                                <input type="text" placeholder="添加今日完成的痛点..." required
+                                    class="flex-1 px-3 py-2 border border-gray-200 rounded-lg focus:ring-0 focus:border-today input-focus-effect outline-none bg-gray-50/50 text-sm">
+                                <button type="submit" 
+                                    class="today-gradient text-white p-2 rounded-lg hover:opacity-95 transition-all-300">
+                                    <i class="fas fa-plus text-xs"></i>
+                                </button>
+                            </form>
+                            <div class="pain-list today-list" data-category="cost">
+                                <div class="text-center text-secondary py-4" id="cost-today-empty">
+                                    <div class="w-8 h-8 inline-flex items-center justify-center bg-gray-100 rounded-full mb-2">
+                                        <i class="fas fa-star text-lg text-gray-400"></i>
+                                    </div>
+                                    <p class="text-gray-500 text-xs">暂无今日完成痛点</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 3. 已完成痛点 -->
+                        <div>
+                            <h3 class="text-sm font-medium text-gray-600 mb-3 flex items-center gap-1">
+                                <i class="fas fa-check-circle text-xs text-success"></i>
+                                已完成痛点 (<span id="cost-completed-count" class="count-badge" data-category="cost" data-type="completed">0</span>)
+                            </h3>
+                            <div class="pain-list completed-list" data-category="cost">
+                                <div class="text-center text-secondary py-4" id="cost-completed-empty">
+                                    <div class="w-8 h-8 inline-flex items-center justify-center bg-gray-100 rounded-full mb-2">
+                                        <i class="fas fa-check-double text-lg text-gray-400"></i>
+                                    </div>
+                                    <p class="text-gray-500 text-xs">暂无已完成痛点</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 招标代理 痛点管理 -->
+                <div class="bg-white rounded-2xl card-shadow overflow-hidden scale-hover transition-all-300">
+                    <div class="bg-warning/10 p-5 border-l-4 border-warning">
+                        <h2 class="text-lg font-bold text-warning flex items-center gap-2">
+                            <i class="fas fa-file-contract w-6 h-6 flex items-center justify-center bg-warning/20 rounded-full text-warning"></i>
+                            招标代理
+                        </h2>
+                    </div>
+                    <div class="p-5 space-y-6">
+                        <!-- 1. 待处理痛点 -->
+                        <div>
+                            <div class="flex justify-between items-center mb-3">
+                                <h3 class="text-sm font-medium text-gray-600 flex items-center gap-1">
+                                    <i class="fas fa-exclamation-circle text-xs text-warning"></i>
+                                    待处理痛点 (<span id="bid-pending-count" class="count-badge" data-category="bid" data-type="pending">0</span>)
+                                </h3>
+                            </div>
+                            <form class="add-pain-form mb-3 flex gap-2" data-category="bid" data-type="pending">
+                                <input type="text" placeholder="添加新的痛点..." required
+                                    class="flex-1 px-3 py-2 border border-gray-200 rounded-lg focus:ring-0 focus:border-warning input-focus-effect outline-none bg-gray-50/50 text-sm">
+                                <button type="submit" 
+                                    class="bg-warning text-white p-2 rounded-lg hover:bg-warning/90 transition-all-300">
+                                    <i class="fas fa-plus text-xs"></i>
+                                </button>
+                            </form>
+                            <div class="pain-list pending-list" data-category="bid">
+                                <div class="text-center text-secondary py-4" id="bid-pending-empty">
+                                    <div class="w-8 h-8 inline-flex items-center justify-center bg-gray-100 rounded-full mb-2">
+                                        <i class="fas fa-inbox text-lg text-gray-400"></i>
+                                    </div>
+                                    <p class="text-gray-500 text-xs">暂无待处理痛点</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 2. 今日完成痛点 -->
+                        <div>
+                            <h3 class="text-sm font-medium text-gray-600 mb-3 flex items-center gap-1">
+                                <i class="fas fa-star text-xs text-today"></i>
+                                今日完成痛点 (<span id="bid-today-count" class="count-badge" data-category="bid" data-type="today">0</span>)
+                            </h3>
+                            <!-- 添加今日完成痛点表单 -->
+                            <form class="add-pain-form mb-3 flex gap-2" data-category="bid" data-type="today">
+                                <input type="text" placeholder="添加今日完成的痛点..." required
+                                    class="flex-1 px-3 py-2 border border-gray-200 rounded-lg focus:ring-0 focus:border-today input-focus-effect outline-none bg-gray-50/50 text-sm">
+                                <button type="submit" 
+                                    class="today-gradient text-white p-2 rounded-lg hover:opacity-95 transition-all-300">
+                                    <i class="fas fa-plus text-xs"></i>
+                                </button>
+                            </form>
+                            <div class="pain-list today-list" data-category="bid">
+                                <div class="text-center text-secondary py-4" id="bid-today-empty">
+                                    <div class="w-8 h-8 inline-flex items-center justify-center bg-gray-100 rounded-full mb-2">
+                                        <i class="fas fa-star text-lg text-gray-400"></i>
+                                    </div>
+                                    <p class="text-gray-500 text-xs">暂无今日完成痛点</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 3. 已完成痛点 -->
+                        <div>
+                            <h3 class="text-sm font-medium text-gray-600 mb-3 flex items-center gap-1">
+                                <i class="fas fa-check-circle text-xs text-success"></i>
+                                已完成痛点 (<span id="bid-completed-count" class="count-badge" data-category="bid" data-type="completed">0</span>)
+                            </h3>
+                            <div class="pain-list completed-list" data-category="bid">
+                                <div class="text-center text-secondary py-4" id="bid-completed-empty">
+                                    <div class="w-8 h-8 inline-flex items-center justify-center bg-gray-100 rounded-full mb-2">
+                                        <i class="fas fa-check-double text-lg text-gray-400"></i>
+                                    </div>
+                                    <p class="text-gray-500 text-xs">暂无已完成痛点</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 监理 痛点管理 -->
+                <div class="bg-white rounded-2xl card-shadow overflow-hidden scale-hover transition-all-300">
+                    <div class="bg-success/10 p-5 border-l-4 border-success">
+                        <h2 class="text-lg font-bold text-success flex items-center gap-2">
+                            <i class="fas fa-hard-hat w-6 h-6 flex items-center justify-center bg-success/20 rounded-full text-success"></i>
+                            监理
+                        </h2>
+                    </div>
+                    <div class="p-5 space-y-6">
+                        <!-- 1. 待处理痛点 -->
+                        <div>
+                            <div class="flex justify-between items-center mb-3">
+                                <h3 class="text-sm font-medium text-gray-600 flex items-center gap-1">
+                                    <i class="fas fa-exclamation-circle text-xs text-success"></i>
+                                    待处理痛点 (<span id="supervise-pending-count" class="count-badge" data-category="supervise" data-type="pending">0</span>)
+                                </h3>
+                            </div>
+                            <form class="add-pain-form mb-3 flex gap-2" data-category="supervise" data-type="pending">
+                                <input type="text" placeholder="添加新的痛点..." required
+                                    class="flex-1 px-3 py-2 border border-gray-200 rounded-lg focus:ring-0 focus:border-success input-focus-effect outline-none bg-gray-50/50 text-sm">
+                                <button type="submit" 
+                                    class="bg-success text-white p-2 rounded-lg hover:bg-success/90 transition-all-300">
+                                    <i class="fas fa-plus text-xs"></i>
+                                </button>
+                            </form>
+                            <div class="pain-list pending-list" data-category="supervise">
+                                <div class="text-center text-secondary py-4" id="supervise-pending-empty">
+                                    <div class="w-8 h-8 inline-flex items-center justify-center bg-gray-100 rounded-full mb-2">
+                                        <i class="fas fa-inbox text-lg text-gray-400"></i>
+                                    </div>
+                                    <p class="text-gray-500 text-xs">暂无待处理痛点</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 2. 今日完成痛点 -->
+                        <div>
+                            <h3 class="text-sm font-medium text-gray-600 mb-3 flex items-center gap-1">
+                                <i class="fas fa-star text-xs text-today"></i>
+                                今日完成痛点 (<span id="supervise-today-count" class="count-badge" data-category="supervise" data-type="today">0</span>)
+                            </h3>
+                            <!-- 添加今日完成痛点表单 -->
+                            <form class="add-pain-form mb-3 flex gap-2" data-category="supervise" data-type="today">
+                                <input type="text" placeholder="添加今日完成的痛点..." required
+                                    class="flex-1 px-3 py-2 border border-gray-200 rounded-lg focus:ring-0 focus:border-today input-focus-effect outline-none bg-gray-50/50 text-sm">
+                                <button type="submit" 
+                                    class="today-gradient text-white p-2 rounded-lg hover:opacity-95 transition-all-300">
+                                    <i class="fas fa-plus text-xs"></i>
+                                </button>
+                            </form>
+                            <div class="pain-list today-list" data-category="supervise">
+                                <div class="text-center text-secondary py-4" id="supervise-today-empty">
+                                    <div class="w-8 h-8 inline-flex items-center justify-center bg-gray-100 rounded-full mb-2">
+                                        <i class="fas fa-star text-lg text-gray-400"></i>
+                                    </div>
+                                    <p class="text-gray-500 text-xs">暂无今日完成痛点</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 3. 已完成痛点 -->
+                        <div>
+                            <h3 class="text-sm font-medium text-gray-600 mb-3 flex items-center gap-1">
+                                <i class="fas fa-check-circle text-xs text-success"></i>
+                                已完成痛点 (<span id="supervise-completed-count" class="count-badge" data-category="supervise" data-type="completed">0</span>)
+                            </h3>
+                            <div class="pain-list completed-list" data-category="supervise">
+                                <div class="text-center text-secondary py-4" id="supervise-completed-empty">
+                                    <div class="w-8 h-8 inline-flex items-center justify-center bg-gray-100 rounded-full mb-2">
+                                        <i class="fas fa-check-double text-lg text-gray-400"></i>
+                                    </div>
+                                    <p class="text-gray-500 text-xs">暂无已完成痛点</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 财务 痛点管理 -->
+                <div class="bg-white rounded-2xl card-shadow overflow-hidden scale-hover transition-all-300">
+                    <div class="bg-danger/10 p-5 border-l-4 border-danger">
+                        <h2 class="text-lg font-bold text-danger flex items-center gap-2">
+                            <i class="fas fa-coins w-6 h-6 flex items-center justify-center bg-danger/20 rounded-full text-danger"></i>
+                            财务
+                        </h2>
+                    </div>
+                    <div class="p-5 space-y-6">
+                        <!-- 1. 待处理痛点 -->
+                        <div>
+                            <div class="flex justify-between items-center mb-3">
+                                <h3 class="text-sm font-medium text-gray-600 flex items-center gap-1">
+                                    <i class="fas fa-exclamation-circle text-xs text-danger"></i>
+                                    待处理痛点 (<span id="finance-pending-count" class="count-badge" data-category="finance" data-type="pending">0</span>)
+                                </h3>
+                            </div>
+                            <form class="add-pain-form mb-3 flex gap-2" data-category="finance" data-type="pending">
+                                <input type="text" placeholder="添加新的痛点..." required
+                                    class="flex-1 px-3 py-2 border border-gray-200 rounded-lg focus:ring-0 focus:border-danger input-focus-effect outline-none bg-gray-50/50 text-sm">
+                                <button type="submit" 
+                                    class="bg-danger text-white p-2 rounded-lg hover:bg-danger/90 transition-all-300">
+                                    <i class="fas fa-plus text-xs"></i>
+                                </button>
+                            </form>
+                            <div class="pain-list pending-list" data-category="finance">
+                                <div class="text-center text-secondary py-4" id="finance-pending-empty">
+                                    <div class="w-8 h-8 inline-flex items-center justify-center bg-gray-100 rounded-full mb-2">
+                                        <i class="fas fa-inbox text-lg text-gray-400"></i>
+                                    </div>
+                                    <p class="text-gray-500 text-xs">暂无待处理痛点</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 2. 今日完成痛点 -->
+                        <div>
+                            <h3 class="text-sm font-medium text-gray-600 mb-3 flex items-center gap-1">
+                                <i class="fas fa-star text-xs text-today"></i>
+                                今日完成痛点 (<span id="finance-today-count" class="count-badge" data-category="finance" data-type="today">0</span>)
+                            </h3>
+                            <!-- 添加今日完成痛点表单 -->
+                            <form class="add-pain-form mb-3 flex gap-2" data-category="finance" data-type="today">
+                                <input type="text" placeholder="添加今日完成的痛点..." required
+                                    class="flex-1 px-3 py-2 border border-gray-200 rounded-lg focus:ring-0 focus:border-today input-focus-effect outline-none bg-gray-50/50 text-sm">
+                                <button type="submit" 
+                                    class="today-gradient text-white p-2 rounded-lg hover:opacity-95 transition-all-300">
+                                    <i class="fas fa-plus text-xs"></i>
+                                </button>
+                            </form>
+                            <div class="pain-list today-list" data-category="finance">
+                                <div class="text-center text-secondary py-4" id="finance-today-empty">
+                                    <div class="w-8 h-8 inline-flex items-center justify-center bg-gray-100 rounded-full mb-2">
+                                        <i class="fas fa-star text-lg text-gray-400"></i>
+                                    </div>
+                                    <p class="text-gray-500 text-xs">暂无今日完成痛点</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 3. 已完成痛点 -->
+                        <div>
+                            <h3 class="text-sm font-medium text-gray-600 mb-3 flex items-center gap-1">
+                                <i class="fas fa-check-circle text-xs text-success"></i>
+                                已完成痛点 (<span id="finance-completed-count" class="count-badge" data-category="finance" data-type="completed">0</span>)
+                            </h3>
+                            <div class="pain-list completed-list" data-category="finance">
+                                <div class="text-center text-secondary py-4" id="finance-completed-empty">
+                                    <div class="w-8 h-8 inline-flex items-center justify-center bg-gray-100 rounded-full mb-2">
+                                        <i class="fas fa-check-double text-lg text-gray-400"></i>
+                                    </div>
+                                    <p class="text-gray-500 text-xs">暂无已完成痛点</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // 全局变量
+        const PAIN_STORAGE_KEY = 'work_pain_points';
+        let currentUser = null;
+
+        // 允许登录的用户列表
+        const ALLOWED_USERS = [
+            'admin', 
+            '颜龙', 
+            '李文涛', 
+            '刘亚文', 
+            '韩素琦', 
+            '贾雪花', 
+            '周松瑜'
+        ];
+        const DEFAULT_PASSWORD = '123456';
+
+        // 预置的造价咨询痛点数据
+        const PRESET_COST_PAINS = [
+            "自动化工程量计算（识图算量）拿到图纸后梳理需算量的内容，自动识别CAD图纸，能快速计算工程量，能有计算公式，并能汇总用量指标。",
+            "自动化工程量计算（识图算量）土建基础、柱、梁、板、门窗等。",
+            "自动化工程量计算（识图算量）安装管材、电缆、支架等。",
+            "变更算量，当设计变更时，能快速对比新旧图纸，计算出工程量差值。",
+            "自动套价与组价，根据图纸说明及要求编制清单内容，智能套定额： 根据构件名称、特征描述（如“C30泵送商品混凝土矩形柱”），自动推荐最匹配的定额子目，减少手动查找。根据计算出的工程量，套用合适的定额子目，形成综合单价。组价分析： 可以分析历史项目中类似清单的组价方式，为当前项目提供参考。",
+            "材料价格信息，能自动从各地住建部门、供应商平台、及其他专业平台提取更新的材料信息价，分类汇总到自己公司的材料价格库中。",
+            "材料价格信息，基于大宗商品价格数据和市场趋势，可预测主要材料（如钢筋、水泥、电缆）的未来价格走势，为成本控制和投标报价提供参考。",
+            "材料价格信息，输入材料名称和规格，可以联网搜索或从数据库中匹配出多个供应商的报价，生成询价汇总报告。",
+            "合同审查，可以快速阅读合同条款，识别出与标准合同范本的差异，对比标准合同范本，标记出专用条款中不合理的、存在重大风险的条款（如过于苛刻的付款条件、模糊的变更计价方式）。",
+            "过程资料，自动对大量的工程联系单、签证单、会议纪要等进行分类、归档和关键词提取。",
+            "进度款审核，按月或按节点审核施工单位上报的已完成工程量和产值，可以将施工单位上报的进度数据与计划进度进行比对，快速校验其合理性和准确性，标记出异常或超报部分。",
+            "结算审计辅助，可以快速核对送审资料中的工程量、单价，与合同规定是否一致，标记出异常数据，供审计人员重点审查。",
+            "历史数据指标，项目结束后，将项目的数据沉淀下来，形成成本指标。可以分析公司积累的历史项目数据，找出不同业态、不同结构形式的单方造价指标、人材机消耗量指标，为新项目快速估算提供精准依据。"
+        ];
+
+        // 预置的招标代理痛点数据
+        const PRESET_BID_PAINS = [
+            "政策更新快、各地口径不一：国家/地方法规、电子招投标系统规则频繁调整。",
+            "全流程节点多、容错率极低：公告、文件、答疑、开标、评标、公示、备案，一环错全流程返工。",
+            "需求不清晰、反复改需求：技术参数、资质要求、评分细则临时变动，导致文件反复修订。",
+            "进度压得紧、合规要兜底：既要快又要合规，很多风险最终由代理机构背锅。",
+            "围标串标排查难、责任大：一旦出现异常，代理机构首当其冲被调查。"
+        ];
+
+        // 预置的监理痛点数据
+        const PRESET_SUPERVISE_PAINS = [
+            "现场巡检还是靠人亲自到场巡视，靠腿，靠眼睛，手机拍照记问题。",
+            "现场的质量安全隐患发现不及时，新人或者是刚进场的监理员业务不熟练只能靠有经验的老监理。",
+            "监理资料多，报检报验、旁站、日志全靠手写。",
+            "进度管控只能通过每天巡视、拍的照片，但往往实际进度和计划对不上。",
+            "多方沟通混乱，总包分包甲方设计，各种信息开会，实际问题都解决不了，问题不能闭环。",
+            "监理员的流动性大，人员一离开交接问题无法做到面面俱到。"
+        ];
+
+        // DOM 元素
+        const loginPage = document.getElementById('login-page');
+        const mainPage = document.getElementById('main-page');
+        const loadingState = document.getElementById('loading-state');
+        const loginForm = document.getElementById('login-form');
+        const logoutBtn = document.getElementById('logout-btn');
+        const userNameEl = document.getElementById('user-name');
+        const addPainForms = document.querySelectorAll('.add-pain-form');
+        // 弹窗相关元素
+        const painModal = document.getElementById('pain-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalContent = document.getElementById('modal-content');
+        const modalEmpty = document.getElementById('modal-empty');
+        const modalList = document.getElementById('modal-list');
+        const closeModal = document.getElementById('close-modal');
+        const closeModalBtn = document.getElementById('close-modal-btn');
+        // 计数数字元素
+        const countBadges = document.querySelectorAll('.count-badge');
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            checkLoginStatus();
+            loginForm.addEventListener('submit', handleLogin);
+            logoutBtn.addEventListener('click', handleLogout);
+            
+            // 绑定添加痛点表单事件
+            addPainForms.forEach(form => {
+                form.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    addPainPoint(form);
+                });
+            });
+            
+            // 绑定计数数字点击事件
+            countBadges.forEach(badge => {
+                badge.addEventListener('click', openPainModal);
+            });
+            
+            // 绑定弹窗关闭事件
+            closeModal.addEventListener('click', closePainModal);
+            closeModalBtn.addEventListener('click', closePainModal);
+            // 点击弹窗外部遮罩层关闭
+            painModal.addEventListener('click', (e) => {
+                if (e.target === painModal) {
+                    closePainModal();
+                }
+            });
+        });
+
+        // 检查登录状态
+        function checkLoginStatus() {
+            const user = localStorage.getItem('current_user');
+            if (user) {
+                currentUser = user;
+                loadingState.classList.remove('hidden');
+                setTimeout(() => {
+                    showMainPage();
+                    loadingState.classList.add('hidden');
+                }, 800);
+            } else {
+                showLoginPage();
+            }
+        }
+
+        // 处理登录
+        function handleLogin(e) {
+            e.preventDefault();
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value.trim();
+            
+            if (!username || !password) {
+                alert('请输入用户名和密码！');
+                return;
+            }
+            
+            if (ALLOWED_USERS.includes(username) && password === DEFAULT_PASSWORD) {
+                localStorage.setItem('current_user', username);
+                currentUser = username;
+                // 初始化预置数据（仅首次登录时添加）
+                initPresetPains();
+                loadingState.classList.remove('hidden');
+                setTimeout(() => {
+                    showMainPage();
+                    loadingState.classList.add('hidden');
+                }, 800);
+            } else {
+                alert(`用户名或密码错误！
+请输入正确的用户名和密码`);
+            }
+        }
+
+        // 初始化预置的痛点数据
+        function initPresetPains() {
+            const painsData = JSON.parse(localStorage.getItem(PAIN_STORAGE_KEY)) || {};
+            
+            // 初始化造价咨询预置数据
+            if (!painsData.cost || painsData.cost.length === 0) {
+                const presetCostPains = PRESET_COST_PAINS.map(content => ({
+                    content: content,
+                    status: 'pending',
+                    createTime: new Date().toLocaleString(),
+                    completeTime: ''
+                }));
+                painsData.cost = presetCostPains;
+            }
+            
+            // 初始化招标代理预置数据
+            if (!painsData.bid || painsData.bid.length === 0) {
+                const presetBidPains = PRESET_BID_PAINS.map(content => ({
+                    content: content,
+                    status: 'pending',
+                    createTime: new Date().toLocaleString(),
+                    completeTime: ''
+                }));
+                painsData.bid = presetBidPains;
+            }
+            
+            // 初始化监理预置数据
+            if (!painsData.supervise || painsData.supervise.length === 0) {
+                const presetSupervisePains = PRESET_SUPERVISE_PAINS.map(content => ({
+                    content: content,
+                    status: 'pending',
+                    createTime: new Date().toLocaleString(),
+                    completeTime: ''
+                }));
+                painsData.supervise = presetSupervisePains;
+            }
+            
+            // 保存所有预置数据
+            localStorage.setItem(PAIN_STORAGE_KEY, JSON.stringify(painsData));
+        }
+
+        // 处理退出登录
+        function handleLogout() {
+            if (confirm('确定要退出登录吗？')) {
+                localStorage.removeItem('current_user');
+                currentUser = null;
+                showLoginPage();
+            }
+        }
+
+        // 显示登录页面
+        function showLoginPage() {
+            loginPage.classList.remove('hidden');
+            mainPage.classList.add('hidden');
+            loadingState.classList.add('hidden');
+            loginForm.reset();
+        }
+
+        // 显示主页面
+        function showMainPage() {
+            loginPage.classList.add('hidden');
+            mainPage.classList.remove('hidden');
+            userNameEl.textContent = `${currentUser}`;
+            loadAllPainPoints();
+        }
+
+        // 加载所有痛点数据
+        function loadAllPainPoints() {
+            const categories = ['cost', 'bid', 'supervise', 'finance'];
+            categories.forEach(category => {
+                loadPainPointsByCategory(category);
+            });
+        }
+
+        // 按分类加载痛点数据（待处理/今日完成/已完成）
+        function loadPainPointsByCategory(category) {
+            // 获取所有痛点数据
+            const allPains = getPainPointsByCategory(category);
+            
+            // 分类筛选
+            const pendingPains = allPains.filter(pain => pain.status === 'pending');
+            const todayPains = allPains.filter(pain => pain.status === 'today');
+            const completedPains = allPains.filter(pain => pain.status === 'completed');
+            
+            // 更新计数
+            document.getElementById(`${category}-pending-count`).textContent = pendingPains.length;
+            document.getElementById(`${category}-today-count`).textContent = todayPains.length;
+            document.getElementById(`${category}-completed-count`).textContent = completedPains.length;
+            
+            // 加载待处理列表
+            renderPainList(category, 'pending', pendingPains);
+            // 加载今日完成列表
+            renderPainList(category, 'today', todayPains);
+            // 加载已完成列表
+            renderPainList(category, 'completed', completedPains);
+        }
+
+        // 渲染痛点列表
+        function renderPainList(category, type, pains) {
+            const listEl = document.querySelector(`.${type}-list[data-category="${category}"]`);
+            const emptyEl = document.getElementById(`${category}-${type}-empty`);
+            
+            // 清空列表
+            listEl.innerHTML = '';
+            
+            // 显示空状态或渲染列表
+            if (pains.length === 0) {
+                listEl.appendChild(emptyEl);
+                emptyEl.classList.remove('hidden');
+            } else {
+                emptyEl.classList.add('hidden');
+                const fragment = document.createDocumentFragment();
+                
+                pains.forEach((pain, index) => {
+                    const painItem = createPainItemElement(category, type, pain, index);
+                    fragment.appendChild(painItem);
+                });
+                
+                listEl.appendChild(fragment);
+            }
+        }
+
+        // 创建痛点项元素
+        function createPainItemElement(category, type, pain, index) {
+            const div = document.createElement('div');
+            let buttonGroup = '';
+            
+            // 根据不同类型设置样式和按钮
+            switch(type) {
+                case 'pending':
+                    div.className = 'flex items-center justify-between p-2 border-b border-gray-100 hover:bg-gray-50/80 transition-all-300 rounded-lg my-1';
+                    buttonGroup = `
+                        <div class="flex gap-1">
+                            <button class="text-today hover:text-today/80 transition-all-300 pain-today-btn p-1 rounded-full hover:bg-today/5" 
+                                    data-category="${category}" data-index="${index}">
+                                <i class="fas fa-star text-xs"></i>
+                            </button>
+                            <button class="text-success hover:text-success/80 transition-all-300 pain-complete-btn p-1 rounded-full hover:bg-success/5" 
+                                    data-category="${category}" data-index="${index}">
+                                <i class="fas fa-check text-xs"></i>
+                            </button>
+                            <button class="text-danger hover:text-danger/80 transition-all-300 pain-delete-btn p-1 rounded-full hover:bg-danger/5" 
+                                    data-category="${category}" data-index="${index}">
+                                <i class="fas fa-trash text-xs"></i>
+                            </button>
+                        </div>
+                    `;
+                    break;
+                    
+                case 'today':
+                    div.className = 'flex items-center justify-between p-2 border-b border-gray-100 hover:bg-gray-50/80 transition-all-300 rounded-lg my-1 today-opacity';
+                    buttonGroup = `
+                        <div class="flex gap-1">
+                            <button class="text-primary hover:text-primary/80 transition-all-300 pain-restore-btn p-1 rounded-full hover:bg-primary/5" 
+                                    data-category="${category}" data-index="${index}">
+                                <i class="fas fa-undo text-xs"></i>
+                            </button>
+                            <button class="text-success hover:text-success/80 transition-all-300 pain-complete-btn p-1 rounded-full hover:bg-success/5" 
+                                    data-category="${category}" data-index="${index}">
+                                <i class="fas fa-check text-xs"></i>
+                            </button>
+                            <button class="text-danger hover:text-danger/80 transition-all-300 pain-delete-btn p-1 rounded-full hover:bg-danger/5" 
+                                    data-category="${category}" data-index="${index}">
+                                <i class="fas fa-trash text-xs"></i>
+                            </button>
+                        </div>
+                    `;
+                    break;
+                    
+                case 'completed':
+                    div.className = 'flex items-center justify-between p-2 border-b border-gray-100 hover:bg-gray-50/80 transition-all-300 rounded-lg my-1 completed-opacity';
+                    buttonGroup = `
+                        <div class="flex gap-1">
+                            <button class="text-primary hover:text-primary/80 transition-all-300 pain-restore-btn p-1 rounded-full hover:bg-primary/5" 
+                                    data-category="${category}" data-index="${index}">
+                                <i class="fas fa-undo text-xs"></i>
+                            </button>
+                            <button class="text-danger hover:text-danger/80 transition-all-300 pain-delete-btn p-1 rounded-full hover:bg-danger/5" 
+                                    data-category="${category}" data-index="${index}">
+                                <i class="fas fa-trash text-xs"></i>
+                            </button>
+                        </div>
+                    `;
+                    break;
+            }
+            
+            // 设置内容
+            div.innerHTML = `
+                <span class="${type !== 'pending' ? 'line-through text-secondary' : 'text-dark'} text-sm">${pain.content}</span>
+                ${buttonGroup}
+            `;
+            
+            // 绑定事件
+            if (div.querySelector('.pain-today-btn')) {
+                div.querySelector('.pain-today-btn').addEventListener('click', markAsToday);
+            }
+            if (div.querySelector('.pain-complete-btn')) {
+                div.querySelector('.pain-complete-btn').addEventListener('click', markAsCompleted);
+            }
+            if (div.querySelector('.pain-restore-btn')) {
+                div.querySelector('.pain-restore-btn').addEventListener('click', restoreToPending);
+            }
+            if (div.querySelector('.pain-delete-btn')) {
+                div.querySelector('.pain-delete-btn').addEventListener('click', deletePainPoint);
+            }
+            
+            return div;
+        }
+
+        // 添加新痛点
+        function addPainPoint(form) {
+            const category = form.dataset.category;
+            const type = form.dataset.type; // 新增：获取要添加的痛点类型（pending/today）
+            const input = form.querySelector('input');
+            const painText = input.value.trim();
+            
+            if (painText) {
+                let pains = getPainPointsByCategory(category);
+                
+                // 添加新痛点（根据表单类型设置状态）
+                pains.push({
+                    content: painText,
+                    status: type, // 使用表单指定的状态（pending/today）
+                    createTime: new Date().toLocaleString(),
+                    completeTime: type === 'completed' ? new Date().toLocaleString() : ''
+                });
+                
+                // 保存数据
+                savePainPointsByCategory(category, pains);
+                // 重新加载列表
+                loadPainPointsByCategory(category);
+                // 清空输入框
+                input.value = '';
+            }
+        }
+
+        // 标记为今日完成
+        function markAsToday(e) {
+            updatePainStatus(e, 'today');
+        }
+
+        // 标记为已完成
+        function markAsCompleted(e) {
+            updatePainStatus(e, 'completed', true);
+        }
+
+        // 恢复为待处理
+        function restoreToPending(e) {
+            updatePainStatus(e, 'pending');
+        }
+
+        // 更新痛点状态
+        function updatePainStatus(e, newStatus, recordTime = false) {
+            const category = e.target.closest('button').dataset.category;
+            const index = parseInt(e.target.closest('button').dataset.index);
+            const btnClass = e.target.closest('button').className;
+            
+            // 获取所有痛点
+            let allPains = getPainPointsByCategory(category);
+            // 获取当前列表类型（pending/today/completed）
+            const listType = e.target.closest('.pain-list').className.split(' ').find(cls => cls.includes('-list')).replace('-list', '');
+            
+            // 找到真实索引
+            const filteredPains = allPains.filter(p => p.status === listType);
+            const realIndex = allPains.indexOf(filteredPains[index]);
+            
+            // 更新状态
+            allPains[realIndex].status = newStatus;
+            
+            // 如果是完成操作，记录完成时间
+            if (recordTime) {
+                allPains[realIndex].completeTime = new Date().toLocaleString();
+            } else if (newStatus === 'pending') {
+                // 恢复为待处理时清空完成时间
+                allPains[realIndex].completeTime = '';
+            }
+            
+            // 保存数据并重新加载
+            savePainPointsByCategory(category, allPains);
+            loadPainPointsByCategory(category);
+        }
+
+        // 删除痛点
+        function deletePainPoint(e) {
+            const category = e.target.closest('button').dataset.category;
+            const index = parseInt(e.target.closest('button').dataset.index);
+            
+            if (confirm('确定要删除这个痛点记录吗？')) {
+                // 获取列表类型
+                const listType = e.target.closest('.pain-list').className.split(' ').find(cls => cls.includes('-list')).replace('-list', '');
+                
+                // 获取所有痛点
+                let allPains = getPainPointsByCategory(category);
+                // 找到真实索引
+                const filteredPains = allPains.filter(p => p.status === listType);
+                const realIndex = allPains.indexOf(filteredPains[index]);
+                
+                // 删除项
+                allPains.splice(realIndex, 1);
+                
+                // 保存数据并重新加载
+                savePainPointsByCategory(category, allPains);
+                loadPainPointsByCategory(category);
+            }
+        }
+
+        // 按分类获取痛点数据
+        function getPainPointsByCategory(category) {
+            const painsData = JSON.parse(localStorage.getItem(PAIN_STORAGE_KEY)) || {};
+            return painsData[category] || [];
+        }
+
+        // 按分类保存痛点数据
+        function savePainPointsByCategory(category, pains) {
+            const painsData = JSON.parse(localStorage.getItem(PAIN_STORAGE_KEY)) || {};
+            painsData[category] = pains;
+            localStorage.setItem(PAIN_STORAGE_KEY, JSON.stringify(painsData));
+        }
+
+        // 打开痛点详情弹窗
+        function openPainModal(e) {
+            const category = e.target.dataset.category;
+            const type = e.target.dataset.type;
+            
+            // 定义分类名称映射
+            const categoryNames = {
+                'cost': '造价咨询',
+                'bid': '招标代理',
+                'supervise': '监理',
+                'finance': '财务'
+            };
+            
+            // 定义状态名称映射
+            const typeNames = {
+                'pending': '待处理',
+                'today': '今日完成',
+                'completed': '已完成'
+            };
+            
+            // 设置弹窗标题
+            modalTitle.innerHTML = `
+                <i class="fas fa-list text-primary"></i>
+                ${categoryNames[category]} - ${typeNames[type]}痛点列表
+            `;
+            
+            // 获取对应的数据
+            const allPains = getPainPointsByCategory(category);
+            const filteredPains = allPains.filter(pain => pain.status === type);
+            
+            // 清空弹窗列表
+            modalList.innerHTML = '';
+            
+            // 显示空状态或渲染列表
+            if (filteredPains.length === 0) {
+                modalEmpty.classList.remove('hidden');
+                modalList.classList.add('hidden');
+            } else {
+                modalEmpty.classList.add('hidden');
+                modalList.classList.remove('hidden');
+                
+                // 渲染弹窗列表
+                filteredPains.forEach((pain, index) => {
+                    const painItem = document.createElement('div');
+                    painItem.className = 'p-3 border border-gray-100 rounded-lg hover:bg-gray-50 transition-all-300';
+                    
+                    // 设置状态样式
+                    let statusBadge = '';
+                    switch(type) {
+                        case 'pending':
+                            statusBadge = '<span class="px-2 py-0.5 bg-primary/10 text-primary text-xs rounded-full">待处理</span>';
+                            break;
+                        case 'today':
+                            statusBadge = '<span class="px-2 py-0.5 bg-today/10 text-today text-xs rounded-full">今日完成</span>';
+                            break;
+                        case 'completed':
+                            statusBadge = '<span class="px-2 py-0.5 bg-success/10 text-success text-xs rounded-full">已完成</span>';
+                            break;
+                    }
+                    
+                    // 构建时间信息
+                    let timeInfo = `<div class="text-xs text-gray-400 mt-2">创建时间：${pain.createTime}</div>`;
+                    if (pain.completeTime) {
+                        timeInfo += `<div class="text-xs text-gray-400">完成时间：${pain.completeTime}</div>`;
+                    }
+                    
+                    // 设置内容
+                    painItem.innerHTML = `
+                        <div class="flex justify-between items-start mb-2">
+                            <span class="${type !== 'pending' ? 'line-through text-secondary' : 'text-dark'}">${pain.content}</span>
+                            ${statusBadge}
+                        </div>
+                        ${timeInfo}
+                    `;
+                    
+                    modalList.appendChild(painItem);
+                });
+            }
+            
+            // 显示弹窗
+            painModal.classList.remove('hidden');
+            // 重新添加动画类
+            const modalCard = painModal.querySelector('.modal-enter');
+            modalCard.classList.remove('modal-enter');
+            void modalCard.offsetWidth; // 触发重绘
+            modalCard.classList.add('modal-enter');
+        }
+
+        // 关闭痛点详情弹窗
+        function closePainModal() {
+            const modalCard = painModal.querySelector('.modal-enter');
+            modalCard.classList.remove('modal-enter');
+            modalCard.classList.add('modal-exit');
+            
+            // 动画结束后隐藏弹窗
+            setTimeout(() => {
+                painModal.classList.add('hidden');
+                modalCard.classList.remove('modal-exit');
+            }, 300);
+        }
+    </script>
+</body>
+</html>
